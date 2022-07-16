@@ -30,6 +30,7 @@ env:
   UPLOAD_FIRMWARE: true
   UPLOAD_COWTRANSFER: false
   UPLOAD_WETRANSFER: false
+  UPLOAD_ALIYUNPAN: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
 
@@ -153,6 +154,16 @@ jobs:
         ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
         echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
         echo "::set-output name=url::$(cat wetransfer.log | grep https | cut -f3 -d" ")"
+
+    - name: Upload Aliyunpan
+      id: aliyunpan
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_ALIYUNPAN == 'true' && !cancelled()
+      run: |
+        cd /home/runner/work/BuildAuto/BuildAuto/openwrt/bin/targets/x86/64
+        cp openwrt-x86-64-generic-ext4-combined-efi.img.gz openwrt-x86-64-generic-ext4-combined-efi-$(date +%Y%m%d).img.gz
+        echo "请自动忽略META-INF文件夹。" > 忽略META-INF文件夹.txt            
+        python diy/aliupload.py --token "${{ secrets.ALIYUN_TOKEN }}" --uploadFloder "OpenWrt/X86" --file "openwrt-x86-64-generic-ext4-combined-efi-$(date +%Y%m%d).img.gz"
+        rm -rf openwrt-x86-64-generic-ext4-combined-efi-$(date +%Y%m%d).img.gz
 
     - name: Generate release tag
       id: tag
